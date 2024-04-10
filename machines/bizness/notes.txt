@@ -1,0 +1,29 @@
+2024-04-06 Sat 04:35 PM - nmap shows that the box at 10.10.11.252 is running
+  ssh, http, https, kvm-via-ip (1132), xmpp-server (5269)
+2024-04-06 Sat 06:19 PM - running nmap -sV 10.10.11.252 shows that it is
+a Linux machine and is running OpenSSH 8.4p1 Debian 5+deb11u3 (protocol 2.0)
+- checking NIST, nothing of note shows up for this distro, pivoting to Hydra
+  over Metasploit
+2024-04-06 Sat 06:27 PM Downloaded a list of common usernames saved to
+~/Downloads/common_usernames.txt, ranhydra -L Downloads/common_usernames.txt -p /usr/share/wordlists/rockyou.txt ssh://10.10.11.252
+
+2024-04-06 Sat 06:51 PM running gobuster but excluding redirects: gobuster dir -u http://10.10.11.252 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -b 301
+
+2024-04-06 Sat 06:59 PM adjusted to gobuster dir -u http://10.10.11.252 -w
+/usr/share/wordlists/dirbuster/directory-list-2.3-small.txt -b 301 -t 20 to use
+smaller wordlist and allow for more time back from server
+
+2024-04-06 Sat 07:02 PM While waiting for above to finish, running nitko -h
+http://10.10.11.252 to check for vulns on server
+
+2024-04-06 Sat 07:17 PM none of the above yielded anything, back to msfconsole
+to look at ssh vulns
+
+2024-04-06 Sat 07:20 PM running scanner/ssh/ssh_enumusers yielded false
+positives, so that won't work
+
+2024-04-06 Sat 07:23 PM back to dirsearch, running dirsearch -u
+https://bizness.htb - the site does not resolve. I think this is an issue
+with the server / DNS, and not me.
+
+
