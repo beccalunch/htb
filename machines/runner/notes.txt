@@ -1,0 +1,21 @@
+RECON
+- site runner.htb
+- nothing visible
+- gobuster reveals an /assets folder, which may suggest that it is a Ruby site
+
+BURPSUITE
+- GET /.. 400 Bad Request
+- GET /asdfasdf 404 Not found
+- running nikto
+
+There is a payload for nginx 1.18.0 CVE-2021-23017: https://github.com/M507/CVE-2021-23017-PoC/blob/main/poc.py
+- It requires to know the DNS server the target site is using. Guessing it is the same one my machine is using on this private network. 
+
+Explore click-jacking attacks? https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+
+Running `$ nikto -h http://runner.htb` yielded + /#wp-config.php#: #wp-config.php# file found. This file contains the credentials.
+
+Next steps for Wordpress: https://lifeinhex.com/stealing-wordpress-credentials/ 
+
+Hints say to continue with subdomain enumeration
+
